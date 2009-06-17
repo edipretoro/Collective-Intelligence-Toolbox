@@ -6,8 +6,15 @@ use strict;
 use parent qw( Exporter );
 
 our @EXPORT = ();
-our @EXPORT_OK = qw();
-our %EXPORT_TAGS;
+our @EXPORT_OK = qw(
+    &sim_distance
+
+);
+our %EXPORT_TAGS = (
+    chapter01 => [
+        qw( &sim_distance )
+    ],
+);
 
 =head1 NAME
 
