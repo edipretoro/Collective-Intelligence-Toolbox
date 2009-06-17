@@ -3,6 +3,12 @@ package Collective::Intelligence::Toolbox;
 use warnings;
 use strict;
 
+use parent qw( Exporter );
+
+our @EXPORT = ();
+our @EXPORT_OK = qw();
+our %EXPORT_TAGS;
+
 =head1 NAME
 
 Collective::Intelligence::Toolbox - The great new Collective::Intelligence::Toolbox!
