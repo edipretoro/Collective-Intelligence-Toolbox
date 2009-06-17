@@ -11,7 +11,7 @@ our %EXPORT_TAGS;
 
 =head1 NAME
 
-Collective::Intelligence::Toolbox - The great new Collective::Intelligence::Toolbox!
+Collective::Intelligence::Toolbox - Algorithms presented in Programming Collective Intelligence by Toby Segaran
 
 =head1 VERSION
 
@@ -40,11 +40,27 @@ if you don't export anything, such as for a purely object-oriented module.
 
 =head1 FUNCTIONS
 
-=head2 function1
+=head2 sim_distance
 
 =cut
 
-sub function1 {
+sub sim_distance {
+    my ( $prefs, $person1, $person2 ) = @_;
+
+    my %si;
+    my $sum_of_squares;
+    
+    foreach my $item (keys %{$prefs->{$person1}}) {
+        $si{$item} = 1 if exists $prefs->{$person2}{$item};
+    }
+
+    return 0 if scalar(keys(%si)) == 0;
+
+    foreach my $item (keys %{$prefs->{$person1}}) {
+        $sum_of_squares += ($prefs->{$person1}{$item} - $prefs->{$person2}{$item}) ** 2 if exists $prefs->{$person2}{$item};
+    }
+
+    return 1/(1 + $sum_of_squares);
 }
 
 =head2 function2
