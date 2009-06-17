@@ -7,12 +7,12 @@ use parent qw( Exporter );
 
 our @EXPORT = ();
 our @EXPORT_OK = qw(
-    &sim_distance
-
+  &sim_distance
+  &sim_pearson
 );
 our %EXPORT_TAGS = (
     chapter01 => [
-        qw( &sim_distance )
+        qw( &sim_distance & sim_pearson )
     ],
 );
 
@@ -70,11 +70,41 @@ sub sim_distance {
     return 1/(1 + $sum_of_squares);
 }
 
-=head2 function2
+=head2 sim_pearson
 
 =cut
 
-sub function2 {
+sub sim_pearson {
+    my ( $prefs, $person1, $person2 ) = @_;
+
+    my %si;
+    my $result;
+    my $sum1, my $sum1Sq;
+    my $sum2, my $sum2Sq;
+    my $pSum;
+    my $num, my $den;
+    
+    foreach my $item (keys %{$prefs->{$person1}}) {
+        $si{$item} = 1 if exists $prefs->{$person2}{$item};
+    }
+
+    my $n = scalar(keys(%si));
+
+    return 0 if $n == 0;
+
+    foreach my $item (keys %si) {
+        $sum1 += $prefs->{$person1}{$item};
+        $sum2 += $prefs->{$person2}{$item};
+        $sum1Sq += $prefs->{$person1}{$item} ** 2;
+        $sum2Sq += $prefs->{$person2}{$item} ** 2;
+        $pSum +=  $prefs->{$person1}{$item} * $prefs->{$person2}{$item};
+    }
+
+    $num = $pSum  - ($sum1 * $sum2 / $n);
+    $den = sqrt(($sum1Sq - ($sum1 ** 2) / $n) * ($sum2Sq - ($sum2 ** 2) / $n));
+    return 0 if $den == 0;
+
+    return $num / $den;
 }
 
 =head1 AUTHOR
