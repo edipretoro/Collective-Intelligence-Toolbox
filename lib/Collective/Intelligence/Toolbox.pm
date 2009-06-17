@@ -9,10 +9,14 @@ our @EXPORT = ();
 our @EXPORT_OK = qw(
   &sim_distance
   &sim_pearson
+  &topMatches
 );
 our %EXPORT_TAGS = (
+    all => [
+        qw( &sim_distance &sim_pearson &topMatches )
+    ],
     chapter01 => [
-        qw( &sim_distance & sim_pearson )
+        qw( &sim_distance &sim_pearson &topMatches )
     ],
 );
 
@@ -105,6 +109,26 @@ sub sim_pearson {
     return 0 if $den == 0;
 
     return $num / $den;
+}
+
+=head2 topMatches
+
+=cut
+
+sub topMatches {
+    my ($prefs, $person, $n, $similarity) = @_;
+    $n = 5 if not defined $n;
+    $similarity = \&sim_pearson if not defined $similarity;
+    my @scores;
+    
+    foreach my $other (keys %$prefs) {
+        if ($other ne $person) {
+            push @scores, [ $similarity->($prefs, $person, $other), $other ];
+        }
+    }
+    
+    @scores = sort { $b->[0] <=> $a->[0] } @scores;
+    return @scores[0..$n - 1];
 }
 
 =head1 AUTHOR
