@@ -10,13 +10,14 @@ our @EXPORT_OK = qw(
   &sim_distance
   &sim_pearson
   &topMatches
+  &getRecommendations
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations )
     ],
 );
 
@@ -129,6 +130,39 @@ sub topMatches {
     
     @scores = sort { $b->[0] <=> $a->[0] } @scores;
     return @scores[0..$n - 1];
+}
+
+=head2 getRecommendations
+
+=cut
+
+sub getRecommendations {
+    my ($prefs, $person, $similarity) = @_;
+    $similarity = \&sim_pearson if not defined $similarity;
+
+    my %totals, my %simSums;
+    my @rankings;
+
+    foreach my $other (keys %$prefs) {
+        next if $other eq $person;
+
+        my $sim  = $similarity->($prefs, $person, $other);
+        next if $sim <= 0;
+        foreach my $item (keys %{$prefs->{$other}}) {
+            if (not defined $prefs->{$person}{$item} or $prefs->{$person}{$item} == 0) {
+                $totals{$item} += $prefs->{$other}{$item} * $sim;
+                $simSums{$item} += $sim;
+            }
+        }
+    }
+
+    foreach my $item (keys %totals) {
+        push @rankings, [ $totals{$item} / $simSums{$item}, $item ];
+    }
+
+    @rankings = sort { $b->[0] <=> $a->[0] } @rankings;
+
+    return @rankings;
 }
 
 =head1 AUTHOR
