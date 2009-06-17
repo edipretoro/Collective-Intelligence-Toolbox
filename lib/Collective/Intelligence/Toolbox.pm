@@ -11,13 +11,14 @@ our @EXPORT_OK = qw(
   &sim_pearson
   &topMatches
   &getRecommendations
+  &transformPrefs
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs )
     ],
 );
 
@@ -163,6 +164,23 @@ sub getRecommendations {
     @rankings = sort { $b->[0] <=> $a->[0] } @rankings;
 
     return @rankings;
+}
+
+=head2 transformPrefs
+
+=cut
+
+sub transformPrefs {
+    my $prefs = shift;
+    my %results;
+    
+    foreach my $person (keys %$prefs) {
+        foreach my $item (keys %{$prefs->{$person}}) {
+            $results{$item}{$person} = $prefs->{$person}{$item};
+        }
+    }
+
+    return \%results;
 }
 
 =head1 AUTHOR
