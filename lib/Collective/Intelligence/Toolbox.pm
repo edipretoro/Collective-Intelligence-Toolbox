@@ -6,7 +6,6 @@ use strict;
 use parent qw( Exporter );
 
 use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
-use Data::Dump qw( dump );
 
 our @EXPORT = ();
 our @EXPORT_OK = qw(
