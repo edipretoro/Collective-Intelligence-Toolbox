@@ -5,6 +5,9 @@ use strict;
 
 use parent qw( Exporter );
 
+use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
+use Data::Dump qw( dump );
+
 our @EXPORT = ();
 our @EXPORT_OK = qw(
   &sim_distance
@@ -12,13 +15,14 @@ our @EXPORT_OK = qw(
   &topMatches
   &getRecommendations
   &transformPrefs
+  &initializeUserDict
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict )
     ],
 );
 
@@ -181,6 +185,26 @@ sub transformPrefs {
     }
 
     return \%results;
+}
+
+=head2 initializeUserDict
+
+=cut
+
+sub initializeUserDict {
+    my ( $tag, $count ) = @_;
+    $count = 5 unless $count;
+
+    my $user_dict = {};
+
+    foreach my $p1 (@{get_popular($tag)}[0..$count]) {
+        foreach my $p2 (@{get_urlposts($p1->{href})}) {
+            my $user = $p2->{user};
+            $user_dict->{$user} = {};
+        }
+    }
+
+    return $user_dict;
 }
 
 =head1 AUTHOR
