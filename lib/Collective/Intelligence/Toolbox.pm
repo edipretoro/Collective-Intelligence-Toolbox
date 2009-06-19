@@ -15,13 +15,14 @@ our @EXPORT_OK = qw(
   &getRecommendations
   &transformPrefs
   &initializeUserDict
+  &fillItems
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems )
     ],
 );
 
@@ -204,6 +205,30 @@ sub initializeUserDict {
     }
 
     return $user_dict;
+}
+
+=head2
+
+=cut
+
+sub fillItems {
+    my $user_dict = shift;
+    my $all_items = {};
+    
+    foreach my $user (keys %$user_dict) {
+        my $posts = get_userposts($user);
+        foreach my $post (@$posts) {
+            my $url = $post->{href};
+            $user_dict->{$user}{$url} = 1.0;
+            $all_items->{$url} = 1;
+        }
+    }
+
+    foreach my $url (keys %$all_items) {
+        foreach my $user (keys %$user_dict) {
+            $user_dict->{$user}{$url} = 0 if not exists $user_dict->{$user}{$url};
+        }
+    }
 }
 
 =head1 AUTHOR
