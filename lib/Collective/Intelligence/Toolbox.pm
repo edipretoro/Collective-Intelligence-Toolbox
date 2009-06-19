@@ -173,7 +173,7 @@ sub getRecommendations {
 
     @rankings = sort { $b->[0] <=> $a->[0] } @rankings;
 
-    return @rankings;
+    return [ @rankings ];
 }
 
 =head2 transformPrefs
