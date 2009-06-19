@@ -135,7 +135,7 @@ sub topMatches {
     }
     
     @scores = sort { $b->[0] <=> $a->[0] } @scores;
-    return @scores[0..$n - 1];
+    return [ @scores[0..$n - 1] ];
 }
 
 =head2 getRecommendations
