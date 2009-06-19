@@ -17,13 +17,14 @@ our @EXPORT_OK = qw(
   &initializeUserDict
   &fillItems
   &calculateSimilarItems
+  &getRecommendedItems
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems )
     ],
 );
 
@@ -252,6 +253,33 @@ sub calculateSimilarItems {
     }
 
     return $results;
+}
+
+=head2
+
+=cut
+
+sub getRecommendedItems {
+    my ( $prefs, $itemMatch, $user ) = @_;
+    my $scores = {};
+    my $totalSim = {};
+    my $userRating = $prefs->{$user};
+
+    while (my ($item, $rating) = each %$userRating) {
+        foreach my $item2 (@{$itemMatch->{$item}}) {
+            next if exists $userRating->{$item2->[1]};
+            $scores->{$item2->[1]} += $item2->[0] * $rating;
+            $totalSim->{$item2->[1]} += $item2->[0];
+        }
+    }
+
+    my @rankings;
+    while (my ($item, $score) = each %$scores) {
+        push @rankings, [ $score / $totalSim->{$item}, $item]
+    }
+    
+    @rankings = sort { $b->[0] <=> $a->[0] } @rankings;
+    return @rankings;
 }
 
 =head1 AUTHOR
