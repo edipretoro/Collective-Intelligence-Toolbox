@@ -16,13 +16,14 @@ our @EXPORT_OK = qw(
   &transformPrefs
   &initializeUserDict
   &fillItems
+  &calculateSimilarItems
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems )
     ],
 );
 
@@ -229,6 +230,28 @@ sub fillItems {
             $user_dict->{$user}{$url} = 0 if not exists $user_dict->{$user}{$url};
         }
     }
+}
+
+=head2
+
+=cut
+
+sub calculateSimilarItems {
+    my ( $prefs, $n ) = @_;
+    $n = 10 unless $n;
+
+    my $results = {};
+    my $itemPrefs = transformPrefs( $prefs );
+    my $c = 0;
+
+    foreach my $item (keys %$itemPrefs) {
+        $c++;
+        printf ("%d / %d", $c, scalar(keys %$itemPrefs)) if ($c % 100) == 0;
+        my $scores = topMatches( $itemPrefs, $item, $n, \&sim_distance);
+        $results->{$item} = $scores;        
+    }
+
+    return $results;
 }
 
 =head1 AUTHOR
