@@ -2,10 +2,13 @@ package Collective::Intelligence::Toolbox;
 
 use warnings;
 use strict;
+use Carp;
 
 use parent qw( Exporter );
 
 use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
+use File::Slurp;
+use File::Spec;
 
 our @EXPORT = ();
 our @EXPORT_OK = qw(
@@ -18,13 +21,14 @@ our @EXPORT_OK = qw(
   &fillItems
   &calculateSimilarItems
   &getRecommendedItems
+  &loadMovieLens
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter01 => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems )
+        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
 );
 
@@ -280,6 +284,29 @@ sub getRecommendedItems {
     
     @rankings = sort { $b->[0] <=> $a->[0] } @rankings;
     return @rankings;
+}
+
+=head2
+
+=cut
+
+sub loadMovieLens {
+    my $path = shift;
+    $path = './movielen';
+
+    my $movies = {};
+    foreach my $line (read_file( File::Spec->catfile( $path, '/u.item' ))) {
+        my @fields = split('\|', $line);
+        $movies->{$fields[0]} = $fields[1];
+    }
+
+    my $prefs = {};
+    foreach my $line (read_file( File::Spec->catfile( $path, '/u.data' ))) {
+        my ($user, $movieid, $rating, $ts) = split('\t', $line);
+        $prefs->{$user}{$movies->{$movieid}} = sprintf('%f', $rating);
+    }
+
+    return $prefs;
 }
 
 =head1 AUTHOR
