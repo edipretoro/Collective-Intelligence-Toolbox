@@ -369,7 +369,7 @@ sub pearson {
 
     return 0 if $den == 0;
 
-    return 1.0 - ($num / $den)
+    return 1.0 - ($num / $den);
 }
 
 =head1 AUTHOR
