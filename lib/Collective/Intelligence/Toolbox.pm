@@ -9,6 +9,7 @@ use parent qw( Exporter );
 use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
 use File::Slurp;
 use File::Spec;
+use List::Util qw( sum );
 
 our @EXPORT = ();
 our @EXPORT_OK = qw(
@@ -24,6 +25,7 @@ our @EXPORT_OK = qw(
   &loadMovieLens
 
   &readfile
+  &pearson
 );
 our %EXPORT_TAGS = (
     all => [
@@ -40,13 +42,14 @@ our %EXPORT_TAGS = (
               &loadMovieLens 
 
               &readfile
+              &pearson
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile )
+        qw( &readfile &pearson )
     ],
 );
 
@@ -350,7 +353,24 @@ sub readfile {
     return [ @rownames ], [ @colnames ], [ @data ];
 }
 
+sub pearson {
+    my ($v1, $v2) = @_;
 
+    my $sum1 = sum @$v1;
+    my $sum2 = sum @$v2;
+
+    my $sum1Sq = sum( map { $_ ** 2 } @$v1 );
+    my $sum2Sq = sum( map { $_ ** 2 } @$v2 );
+
+    my $pSum = sum( map { $v1->[$_] * $v2->[$_] } 0 .. scalar(@$v1) );
+
+    my $num = $pSum - ( $sum1 * $sum2 / scalar(@$v1) );
+    my $den = sqrt((($sum1Sq - $sum1 ** 2) / scalar(@$v1)) * (($sum2Sq - $sum2 ** 2) / scalar(@$v1)) );
+
+    return 0 if $den == 0;
+
+    return 1.0 - ($num / $den)
+}
 
 =head1 AUTHOR
 
