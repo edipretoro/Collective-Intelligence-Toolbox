@@ -362,7 +362,7 @@ sub pearson {
     my $sum1Sq = sum( map { $_ ** 2 } @$v1 );
     my $sum2Sq = sum( map { $_ ** 2 } @$v2 );
 
-    my $pSum = sum( map { $v1->[$_] * $v2->[$_] } 0 .. scalar(@$v1) );
+    my $pSum = sum( map { $v1->[$_] * $v2->[$_] } 0 .. scalar(@$v1) - 1 );
 
     my $num = $pSum - ( $sum1 * $sum2 / scalar(@$v1) );
     my $den = sqrt((($sum1Sq - $sum1 ** 2) / scalar(@$v1)) * (($sum2Sq - $sum2 ** 2) / scalar(@$v1)) );
