@@ -22,13 +22,31 @@ our @EXPORT_OK = qw(
   &calculateSimilarItems
   &getRecommendedItems
   &loadMovieLens
+
+  &readfile
 );
 our %EXPORT_TAGS = (
     all => [
-        qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
+        qw( 
+              &sim_distance 
+              &sim_pearson 
+              &topMatches 
+              &getRecommendations 
+              &transformPrefs 
+              &initializeUserDict 
+              &fillItems 
+              &calculateSimilarItems 
+              &getRecommendedItems 
+              &loadMovieLens 
+
+              &readfile
+)
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
+    ],
+    chapter02 => [
+        qw( &readfile )
     ],
 );
 
@@ -308,6 +326,31 @@ sub loadMovieLens {
 
     return $prefs;
 }
+
+=head2 readfile
+
+=cut
+
+sub readfile {
+    my $filename = shift;
+    my @lines = read_file( $filename );
+
+    my @colnames = split('\t', shift(@lines));
+    my @rownames;
+    my @data;
+
+    foreach my $line (@lines) {
+        my @p = split('\t', $line);
+        push @rownames, shift(@p);
+        my @val;
+        map { push @val, sprintf('%f', $_) } @p[1..$#p];
+        push @data, [ @val ];
+    }
+    
+    return [ @rownames ], [ @colnames ], [ @data ];
+}
+
+
 
 =head1 AUTHOR
 
