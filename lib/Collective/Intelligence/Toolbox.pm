@@ -9,7 +9,10 @@ use parent qw( Exporter );
 use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
 use File::Slurp;
 use File::Spec;
-use List::Util qw( sum );
+use List::Util qw( sum max );
+
+use lib '../../';
+use Bicluster;
 
 our @EXPORT = ();
 our @EXPORT_OK = qw(
@@ -26,6 +29,11 @@ our @EXPORT_OK = qw(
 
   &readfile
   &pearson
+  &hcluster
+  &printclust
+  &getheight
+  &getdepth
+  &_range
 );
 our %EXPORT_TAGS = (
     all => [
@@ -43,13 +51,18 @@ our %EXPORT_TAGS = (
 
               &readfile
               &pearson
+              &hcluster
+              &printclust
+              &getheight
+              &getdepth
+              &_range
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile &pearson )
+        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth )
     ],
 );
 
@@ -339,6 +352,7 @@ sub readfile {
     my @lines = read_file( $filename );
 
     my @colnames = split('\t', shift(@lines));
+    shift(@colnames);
     my @rownames;
     my @data;
 
@@ -346,7 +360,7 @@ sub readfile {
         my @p = split('\t', $line);
         push @rownames, shift(@p);
         my @val;
-        map { push @val, sprintf('%f', $_) } @p[1..$#p];
+        map { push @val, sprintf('%f', $_) } @p;
         push @data, [ @val ];
     }
     
@@ -355,14 +369,14 @@ sub readfile {
 
 sub pearson {
     my ($v1, $v2) = @_;
-
+    
     my $sum1 = sum(@{$v1});
     my $sum2 = sum(@{$v2});
 
     my $sum1Sq = sum( map { $_ ** 2 } @{$v1} );
     my $sum2Sq = sum( map { $_ ** 2 } @{$v2} );
 
-    my $pSum = sum( map { $v1->[$_] * $v2->[$_] } 0 .. scalar(@{$v1}) - 1 );
+    my $pSum = sum( map { $v1->[$_] * $v2->[$_] } _range(scalar(@{$v1})) );
 
     my $num = $pSum - ( $sum1 * $sum2 / scalar(@{$v1}) );
     my $den = sqrt( 
@@ -374,6 +388,136 @@ sub pearson {
     return 0 if $den == 0;
     
     return 1.0 - ($num / $den);
+}
+
+=head2 hcluster
+
+=cut
+
+sub hcluster {
+    my ($rows, $distance) = @_;
+    $distance = \&pearson if not defined($distance);
+
+    my %distances;
+    my $currentclustid = -1;
+
+    my $clust = [ map { Bicluster->new( vec => $rows->[$_], id => $_ ) } _range(scalar(@{$rows})) ];
+
+    while (scalar(@{$clust}) > 1) {
+        my @lowestpair = ( 0, 1 );
+        my $closest = $distance->($clust->[0]->vec(), $clust->[1]->vec());
+        foreach my $i (_range(scalar(@{$clust}))) {            
+            foreach my $j (_range($i + 1, scalar(@{$clust}))) {
+                my $key = $clust->[$i]->id() . ',' . $clust->[$j]->id();
+                
+                if (not exists $distances{$key}) {
+                    $distances{$key} = $distance->($clust->[$i]->vec(), $clust->[$j]->vec());
+#                    print $i, ' ', $j, ' ', $currentclustid, ' ', $clust->[$i]->id(), ' ', $clust->[$j]->id(), $/;
+                
+                    # print $key, ' => ', $distances{$key}, $/;
+                }
+
+                my $d = $distances{$key};
+
+                if ($d < $closest) {
+                    $closest = $d;
+                    @lowestpair = ( $i, $j );
+                 }
+            }
+        }
+
+#        print join(' ', @lowestpair), $/;
+        my $mergevec = [];
+        for (_range(scalar(@{$clust->[0]->vec()}))) {
+            my $vec0 = $clust->[$lowestpair[0]]->vec();
+            my $vec1 = $clust->[$lowestpair[1]]->vec();
+            push @{$mergevec}, ($vec0->[$_] + $vec1->[$_]) / 2.0;
+        }
+
+        my $newcluster = Bicluster->new(
+            vec => $mergevec,
+            id => $currentclustid,
+            distance => $closest,
+            left => $clust->[$lowestpair[0]],
+            right => $clust->[$lowestpair[1]],
+        );
+
+        $currentclustid--;
+
+        splice(@{$clust}, $lowestpair[1], 1);
+        splice(@{$clust}, $lowestpair[0], 1);
+
+        push @{$clust}, $newcluster;
+    }
+
+    return $clust->[0];
+}
+
+=head2
+
+=cut
+
+sub printclust {
+    my ($clust, $labels, $n) = @_;
+    $labels = 'None' if not defined($labels);
+    $n = 0 if not defined($n);
+
+    print ' ' x $n;
+    if ($clust->id() < 0) {
+        print '-', $/;
+    } else {
+        if ($labels eq 'None') {
+            print $clust->id(), $/;
+        } else {
+            print $labels->[$clust->id()], $/;
+        }
+    }
+
+    printclust($clust->left(), $labels, $n+1) if ref($clust->left()) ne '';
+    printclust($clust->right(), $labels, $n+1) if ref($clust->right()) ne '';
+}
+
+=head2 getheight
+
+=cut
+
+sub getheight {
+    my $clust = shift;
+
+    if (ref($clust->left()) eq '' and ref($clust->right()) eq '') {
+        return 1;
+    }
+
+    return getheight($clust->left()) + getheight($clust->right());
+}
+
+=head2 getdepth
+
+=cut
+
+sub getdepth {
+    my $clust = shift;
+    
+    if (ref($clust->left()) eq '' and ref($clust->right()) eq '') {
+        return 0;
+    }
+
+    return max(getdepth($clust->left()), getdepth($clust->right())) + $clust->distance();
+}
+
+sub _range {
+    my $range, my $start;
+    
+    if (scalar(@_) == 1) {
+        $start = 0;
+        $range = shift;
+        $range--;
+    } elsif (scalar(@_) == 2) {
+        ($start, $range) = @_;
+        $range--;
+    }
+
+    return $start .. $range;
 }
 
 =head1 AUTHOR
