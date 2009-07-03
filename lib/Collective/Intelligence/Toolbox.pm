@@ -10,6 +10,7 @@ use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
 use File::Slurp;
 use File::Spec;
 use List::Util qw( sum max );
+use GD::Simple;
 
 use lib '../../';
 use Bicluster;
@@ -34,6 +35,7 @@ our @EXPORT_OK = qw(
   &getheight
   &getdepth
   &_range
+  &drawdendogram
 );
 our %EXPORT_TAGS = (
     all => [
@@ -56,13 +58,14 @@ our %EXPORT_TAGS = (
               &getheight
               &getdepth
               &_range
+              &drawdendogram
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth )
+        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram )
     ],
 );
 
@@ -518,6 +521,58 @@ sub _range {
     }
 
     return $start .. $range;
+}
+
+=head2 drawdendogram
+
+=cut
+
+sub drawdendogram {
+    my ($clust, $labels, %args) = @_;
+    my $jpeg = $args{jpeg} || 'clusters.jpeg';
+    my $h = getheight($clust) * 20;
+    my $w = 1200;
+    my $depth = getdepth($clust);
+
+    my $scaling = $w - 150.0 / $depth;
+    my $draw = GD::Simple->new($w, $h);
+    $draw->fgcolor('black');
+
+    $draw->moveTo(0, $h / 2);
+    $draw->lineTo(10, $h / 2);
+
+    drawnode($draw, $clust, 10, ($h / 2), $scaling, $labels);
+    write_file( $jpeg, { binmode => ':raw' }, $draw->jpeg());
+}
+
+=head2 drawnode
+
+=cut
+
+sub drawnode {
+    my ($draw, $clust, $x, $y, $scaling, $labels) = @_;
+    if ($clust->id() < 0) {
+        my $h1 = getheight($clust->left()) * 20;
+        my $h2 = getheight($clust->right()) * 20;
+        my $top = $y - ( $h1 + $h2 ) / 2;
+        my $bottom = $y + ( $h1 + $h2 ) / 2;
+        my $ll = $clust->distance() * $scaling;
+
+        $draw->moveTo($x, $top + $h1 / 2);
+        $draw->lineTo($x, $bottom - $h2 / 2);
+
+        $draw->moveTo($x, $top + $h1 / 2);
+        $draw->lineTo($x + 11, $top + $h1 / 2);
+        
+        $draw->moveTo($x, $bottom - $h2 / 2);
+        $draw->lineTo($x + 11, $bottom - $h2 / 2);
+
+        drawnode($draw, $clust->left(), $x + 11, $top + $h1 / 2.0, $scaling, $labels);
+        drawnode($draw, $clust->right(), $x + 11, $bottom - $h2 / 2.0, $scaling, $labels);
+    } else {
+        $draw->moveTo($x + 5, $y + 5);
+        $draw->string($labels->[$clust->id()]);
+    }
 }
 
 =head1 AUTHOR
