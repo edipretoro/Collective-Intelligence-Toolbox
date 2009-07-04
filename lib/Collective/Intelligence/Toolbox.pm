@@ -36,6 +36,7 @@ our @EXPORT_OK = qw(
   &getdepth
   &_range
   &drawdendogram
+  &rotatematrix
 );
 our %EXPORT_TAGS = (
     all => [
@@ -59,13 +60,14 @@ our %EXPORT_TAGS = (
               &getdepth
               &_range
               &drawdendogram
+              &rotatematrix
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram )
+        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram &rotatematrix)
     ],
 );
 
@@ -573,6 +575,21 @@ sub drawnode {
         $draw->moveTo($x + 5, $y + 5);
         $draw->string($labels->[$clust->id()]);
     }
+}
+
+=head2 rotatematrix
+
+=cut
+
+sub rotatematrix {
+    my $data = shift;
+    my $newdata = [];
+
+    foreach my $i (_range(scalar(@{$data->[0]}))) {
+        my $newrow = [ map { $data->[$_][$i] } _range(scalar(@{$data})) ];
+        push @{$newdata}, $newrow;
+    }
+    return $newdata;
 }
 
 =head1 AUTHOR
