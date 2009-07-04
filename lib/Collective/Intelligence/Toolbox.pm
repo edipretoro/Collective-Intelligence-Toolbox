@@ -40,6 +40,7 @@ our @EXPORT_OK = qw(
   &drawdendogram
   &rotatematrix
   &kcluster
+  &tanamoto
 );
 our %EXPORT_TAGS = (
     all => [
@@ -65,13 +66,14 @@ our %EXPORT_TAGS = (
               &drawdendogram
               &rotatematrix
               &kcluster
+              &tanamoto
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram &rotatematrix &kcluster )
+        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram &rotatematrix &kcluster &tanamoto )
     ],
 );
 
@@ -668,6 +670,23 @@ sub kcluster {
 
   RETURN:
     return $bestmatches;
+}
+
+=head2 tanamoto
+
+=cut
+
+sub tanamoto {
+    my ($v1, $v2) = @_;
+    my ($c1, $c2, $shr) = qw( 0 0 0 );
+    
+    foreach my $i (_range(scalar(@{$v1}))) {
+        $c1++ if $v1->[$i] != 0;
+        $c2++ if $v2->[$i] != 0;
+        $shr++ if $v1->[$i] != 0 and $v2->[$i] != 0;
+    }
+
+    return 1.0 - ($shr / ( $c1 + $c2 - $shr ));
 }
 
 =head1 AUTHOR
