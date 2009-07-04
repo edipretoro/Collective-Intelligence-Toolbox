@@ -9,10 +9,12 @@ use parent qw( Exporter );
 use Net::Delicious::RSS qw( get_popular get_urlposts get_userposts );
 use File::Slurp;
 use File::Spec;
-use List::Util qw( sum max );
+use List::Util qw( sum max min );
 use GD::Simple;
+use Data::Compare;
 
-use lib '../../';
+use lib '../../../lib';
+use lib './lib';
 use Bicluster;
 
 our @EXPORT = ();
@@ -37,6 +39,7 @@ our @EXPORT_OK = qw(
   &_range
   &drawdendogram
   &rotatematrix
+  &kcluster
 );
 our %EXPORT_TAGS = (
     all => [
@@ -61,13 +64,14 @@ our %EXPORT_TAGS = (
               &_range
               &drawdendogram
               &rotatematrix
+              &kcluster
 )
     ],
     chapter01 => [
         qw( &sim_distance &sim_pearson &topMatches &getRecommendations &transformPrefs &initializeUserDict &fillItems &calculateSimilarItems &getRecommendedItems &loadMovieLens )
     ],
     chapter02 => [
-        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram &rotatematrix)
+        qw( &readfile &pearson &hcluster &printclust &getheight &getdepth &drawdendogram &rotatematrix &kcluster )
     ],
 );
 
@@ -590,6 +594,80 @@ sub rotatematrix {
         push @{$newdata}, $newrow;
     }
     return $newdata;
+}
+
+=head2 kcluster
+
+=cut
+
+sub kcluster {
+    my ($rows, $distance, $k) = @_;
+    $distance = \&pearson if not defined $distance;
+    $k = 4 if not defined $k;
+
+    my $ranges = [];
+    foreach my $i (_range(scalar(@{$rows->[0]}))) {
+        push @{$ranges}, [ ( 
+            min( map { $_->[$i] } @{$rows} ),
+            max( map { $_->[$i] } @{$rows} ) 
+        ) ];
+    }
+    
+    my $clusters = [];
+    foreach (_range($k)) {
+        my $centroid = [];
+        foreach my $i (_range(scalar(@{$rows->[0]}))) {
+            push @{$centroid}, [ rand() * ($ranges->[$i][1] - $ranges->[$i][0]) + $ranges->[$i][0] ];
+        }
+        push @{$clusters}, $centroid;
+    }
+
+    my $lastmatches = 'None';
+    my $bestmatches;
+    foreach my $t (_range(100)) {
+        $bestmatches = [];
+        print 'Iteration ' . $t, $/;
+        push @{$bestmatches}, map { [] } _range($k);
+        
+        foreach my $j (_range(scalar(@{$rows}))) {
+            my $row = $rows->[$j];
+            my $bestmatch = 0;
+            foreach my $i (_range($k)) {
+                my $d = $distance->($clusters->[$i], $row);
+                if ($d < $distance->($clusters->[$bestmatch], $row)) {
+                    $bestmatch = $i;
+                }
+            }
+            push @{$bestmatches->[$bestmatch]}, $j;
+        }
+
+        if (Compare($bestmatches, $lastmatches)) {
+            $t += 100;
+            goto RETURN;
+        }
+        
+        $lastmatches = $bestmatches;
+
+        foreach my $i (_range($k)) {
+            my $avgs = [ map { 0.0 } scalar(@{$rows->[0]}) ];
+            if (scalar(@{$bestmatches->[$i]}) > 0) {
+                foreach my $rowid (@{$bestmatches->[$i]}) {                
+                    foreach my $m (_range(scalar(@{$rows->[$rowid]}))) {
+                        $avgs->[$m] += $rows->[$rowid][$m];
+                    }
+                }
+
+                foreach my $j (_range(scalar(@{$avgs}))) {
+                    $avgs->[$j] /= scalar(@{$bestmatches->[$i]});
+                }
+
+                $clusters->[$i] = $avgs;
+            }
+        }
+    }
+
+  RETURN:
+    return $bestmatches;
 }
 
 =head1 AUTHOR
